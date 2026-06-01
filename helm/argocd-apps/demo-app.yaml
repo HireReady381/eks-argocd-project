@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo-app
+  namespace: argocd
+  # Ensures child resources are deleted when this Application is deleted
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    app.kubernetes.io/name: demo-app
+    app.kubernetes.io/managed-by: argocd
+spec:
+  project: default
+
+  # ── Source: your Git repo ──────────────────────────────────────────────────
+  source:
+    repoURL: https://github.com/HireReady381/eks-argocd-project
+    targetRevision: HEAD
+    path: helm/charts/demo-app   # path to the Helm chart inside the repo
+
+  # ── Destination: the EKS cluster ──────────────────────────────────────────
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: demo-app
+
+  # ── Sync Policy ───────────────────────────────────────────────────────────
+  syncPolicy:
+    automated:
+      prune: true      # delete resources removed from Git
+      selfHeal: true   # revert manual kubectl changes
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
