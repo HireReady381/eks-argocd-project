@@ -17,8 +17,6 @@ terraform {
   }
 }
 
-# ─── Providers ─────────────────────────────────────────────────────────────────
-
 provider "aws" {
   region = var.aws_region
 }
@@ -26,7 +24,6 @@ provider "aws" {
 provider "kubernetes" {
   host                   = module.eks.cluster_endpoint
   cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-
   exec {
     api_version = "client.authentication.k8s.io/v1beta1"
     command     = "aws"
@@ -38,7 +35,6 @@ provider "helm" {
   kubernetes {
     host                   = module.eks.cluster_endpoint
     cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-
     exec {
       api_version = "client.authentication.k8s.io/v1beta1"
       command     = "aws"
@@ -47,14 +43,11 @@ provider "helm" {
   }
 }
 
-# ─── Data Sources ──────────────────────────────────────────────────────────────
-
 data "aws_availability_zones" "available" {
   state = "available"
 }
 
-# ─── VPC ───────────────────────────────────────────────────────────────────────
-
+# ── VPC ──────────────────────────────────────────────────────────────────────
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.0"
@@ -70,19 +63,13 @@ module "vpc" {
   single_nat_gateway   = true
   enable_dns_hostnames = true
 
-  public_subnet_tags = {
-    "kubernetes.io/role/elb" = 1
-  }
-
-  private_subnet_tags = {
-    "kubernetes.io/role/internal-elb" = 1
-  }
+  public_subnet_tags  = { "kubernetes.io/role/elb" = 1 }
+  private_subnet_tags = { "kubernetes.io/role/internal-elb" = 1 }
 
   tags = var.tags
 }
 
-# ─── EKS Cluster ───────────────────────────────────────────────────────────────
-
+# ── EKS ──────────────────────────────────────────────────────────────────────
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "~> 20.0"
@@ -100,48 +87,35 @@ module "eks" {
       min_size       = 1
       max_size       = 3
       desired_size   = 2
-
-      labels = {
-        role = "general"
-      }
-
-      tags = var.tags
+      labels         = { role = "general" }
+      tags           = var.tags
     }
   }
 
   enable_cluster_creator_admin_permissions = true
-
   tags = var.tags
 }
 
-# ─── ArgoCD Namespace ──────────────────────────────────────────────────────────
-
+# ── ArgoCD Namespace ─────────────────────────────────────────────────────────
 resource "kubernetes_namespace" "argocd" {
   metadata {
     name = "argocd"
-    labels = {
-      "app.kubernetes.io/managed-by" = "Terraform"
-    }
+    labels = { "app.kubernetes.io/managed-by" = "Terraform" }
   }
-
   depends_on = [module.eks]
 }
 
-# ─── ArgoCD Helm Release ───────────────────────────────────────────────────────
-
+# ── ArgoCD Helm Release ──────────────────────────────────────────────────────
 resource "helm_release" "argocd" {
   name       = "argocd"
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
   version    = var.argocd_chart_version
   namespace  = kubernetes_namespace.argocd.metadata[0].name
-
-  values = [file("${path.module}/../helm/argocd-values.yaml")]
-
+  values     = [file("${path.module}/../helm/argocd-values.yaml")]
   set {
     name  = "configs.params.server\\.insecure"
     value = "true"
   }
-
   depends_on = [kubernetes_namespace.argocd]
 }

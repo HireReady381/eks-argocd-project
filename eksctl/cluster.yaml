@@ -1,0 +1,28 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: argocd-demo
+  region: ap-south-1        # Change to your region
+  version: "1.32"
+
+vpc:
+  id: "vpc-REPLACE_YOUR_VPC_ID"      # Replace with your VPC ID
+  subnets:
+    public:
+      ap-south-1a:
+        id: "subnet-REPLACE_AZ1"     # Replace with your subnet ID (AZ-a)
+      ap-south-1b:
+        id: "subnet-REPLACE_AZ2"     # Replace with your subnet ID (AZ-b)
+
+managedNodeGroups:
+  - name: workers
+    instanceType: m7i-flex.large     # Free tier eligible, 8GB RAM
+    minSize: 1
+    maxSize: 2
+    desiredCapacity: 1
+    amiFamily: Ubuntu2204            # Ubuntu 22.04 worker nodes
+    iam:
+      withAddonPolicies:
+        albIngress: true
+        cloudWatch: true

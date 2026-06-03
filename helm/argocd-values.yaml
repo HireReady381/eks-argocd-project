@@ -1,18 +1,17 @@
-# ─── ArgoCD Helm Values ────────────────────────────────────────────────────────
-# Chart: argo-cd | Repo: https://argoproj.github.io/argo-helm
-# Version: 7.3.4
+# ArgoCD Helm Values
+# Chart: argo-cd | https://argoproj.github.io/argo-helm
 
 global:
-  domain: argocd.example.com   # update if using Ingress + custom domain
+  domain: argocd.example.com
 
 configs:
   params:
-    server.insecure: true       # TLS terminated at LB or via port-forward
+    server.insecure: true
 
 server:
   replicas: 1
   service:
-    type: ClusterIP             # change to LoadBalancer for direct external access
+    type: ClusterIP
   resources:
     requests:
       cpu: 100m
@@ -40,6 +39,5 @@ controller:
 redis:
   enabled: true
 
-# Notifications controller (optional alerting)
 notifications:
   enabled: false
